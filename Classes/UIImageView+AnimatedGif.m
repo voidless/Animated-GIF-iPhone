@@ -23,10 +23,9 @@
 //  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #import <objc/runtime.h>
-#import <objc/message.h>
 #import "UIImageView+AnimatedGif.h"
-void Swizzle(Class c, SEL orig, SEL new)
-{
+
+void Swizzle(Class c, SEL orig, SEL new) {
     Method originalMethod = class_getInstanceMethod(c, orig);
     Method overrideMethod = class_getInstanceMethod(c, new);
     if (class_addMethod(c, orig, method_getImplementation(overrideMethod), method_getTypeEncoding(overrideMethod))) {
@@ -35,10 +34,13 @@ void Swizzle(Class c, SEL orig, SEL new)
         method_exchangeImplementations(originalMethod, overrideMethod);
     }
 }
-static NSMutableDictionary * swizzledClasses;
+
+static NSMutableDictionary *swizzledClasses;
 static void *UIViewAnimationKey;
+
 @implementation UIImageView (AnimatedGif)
--(instancetype) initWithAnimationAtURL:(NSURL*) animationUrl startImmediately:(BOOL)start {
+- (instancetype)initWithAnimationAtURL:(NSURL *)animationUrl startImmediately:(BOOL)start
+{
     self = [self init];
     self.animatedGif = [AnimatedGif getAnimationForGifAtUrl:animationUrl];
     if (start) {
@@ -46,7 +48,9 @@ static void *UIViewAnimationKey;
     }
     return self;
 }
--(instancetype) initWithAnimationData:(NSData*) animationData startImmediately:(BOOL)start {
+
+- (instancetype)initWithAnimationData:(NSData *)animationData startImmediately:(BOOL)start
+{
     self = [self init];
     self.animatedGif = [AnimatedGif getAnimationForGifWithData:animationData];
     if (start) {
@@ -54,7 +58,9 @@ static void *UIViewAnimationKey;
     }
     return self;
 }
--(void)setAnimatedGif:(AnimatedGif *)animatedGif {
+
+- (void)setAnimatedGif:(AnimatedGif *)animatedGif
+{
     //This is workaround for subclasses of UIImageView
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -64,30 +70,40 @@ static void *UIViewAnimationKey;
         Swizzle([self class], @selector(willMoveToSuperview:), @selector(willMoveToSuperviewGif:));
         swizzledClasses[NSStringFromClass(self.class)] = @YES;
     }
-    
+
     if (self.animatedGif != animatedGif) {
         [self.animatedGif stop];
     }
     objc_setAssociatedObject(self, &UIViewAnimationKey, animatedGif, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     animatedGif.parentView = self;
 }
--(void)setAnimatedGif:(AnimatedGif *)animatedGif startImmediately:(BOOL)start {
+
+- (void)setAnimatedGif:(AnimatedGif *)animatedGif startImmediately:(BOOL)start
+{
     self.animatedGif = animatedGif;
     if (start) {
         [self startGifAnimation];
     }
 }
--(AnimatedGif *)animatedGif {
+
+- (AnimatedGif *)animatedGif
+{
     return objc_getAssociatedObject(self, &UIViewAnimationKey);
 }
--(void) startGifAnimation {
+
+- (void)startGifAnimation
+{
     [self.animatedGif start];
 }
--(void)stopGifAnimation {
+
+- (void)stopGifAnimation
+{
     [self.animatedGif stop];
-    
+
 }
--(void)willMoveToSuperviewGif:(UIView *)newSuperview {
+
+- (void)willMoveToSuperviewGif:(UIView *)newSuperview
+{
     if ([self respondsToSelector:@selector(willMoveToSuperviewGif:)]) {
         [self willMoveToSuperviewGif:newSuperview];
     }
@@ -96,7 +112,9 @@ static void *UIViewAnimationKey;
         self.animatedGif = nil;
     }
 }
--(void)dealloc {
+
+- (void)dealloc
+{
     self.animatedGif = nil;
 }
 @end

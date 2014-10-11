@@ -22,10 +22,11 @@
 //  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #import <Foundation/Foundation.h>
-static NSString * const AnimatedGifLoadingProgressEvent = @"AnimatedGifLoadingProgressEvent";
-static NSString * const AnimatedGifDidStartLoadingingEvent = @"AnimatedGifDidStartLoadingingEvent";
-static NSString * const AnimatedGifDidFinishLoadingingEvent = @"AnimatedGifDidFinishLoadingingEvent";
-static NSString * const AnimatedGifRemovedFromSuperview = @"AnimatedGifRemovedFromSuperview";
+
+static NSString *const AnimatedGifLoadingProgressEvent = @"AnimatedGifLoadingProgressEvent";
+static NSString *const AnimatedGifDidStartLoadingingEvent = @"AnimatedGifDidStartLoadingingEvent";
+static NSString *const AnimatedGifDidFinishLoadingingEvent = @"AnimatedGifDidFinishLoadingingEvent";
+static NSString *const AnimatedGifRemovedFromSuperview = @"AnimatedGifRemovedFromSuperview";
 
 @class AnimatedGif;
 
@@ -36,10 +37,9 @@ static NSString * const AnimatedGifRemovedFromSuperview = @"AnimatedGifRemovedFr
 @end
 
 /**
- * Class for enqueing gif loading requests. Also, it keeps gif data info
- */
-@interface AnimatedGifQueueObject : NSObject <NSURLConnectionDataDelegate>
-{
+* Class for enqueuing gif loading requests. Also, it keeps gif data info
+*/
+@interface AnimatedGifQueueObject : NSObject <NSURLConnectionDataDelegate> {
     long long expectedGifSize;
 }
 /// URL of gif been loaded
@@ -52,35 +52,35 @@ static NSString * const AnimatedGifRemovedFromSuperview = @"AnimatedGifRemovedFr
 @end
 
 /**
- * Class for creating animated gif playback.
- */
+* Class for creating animated gif playback.
+*/
 @interface AnimatedGif : NSObject
 
-@property (nonatomic, assign) id<AnimatedGifDelegate> delegate;
+@property (nonatomic, assign) id <AnimatedGifDelegate> delegate;
 
 /// Progress block will be called when GIF is loading from network.
 @property (nonatomic, copy) void(^loadingProgressBlock)(AnimatedGif *object, CGFloat progressLevel);
 /**
- * This block will be called when we are ready to show first frame of animation.
- * You can use it to correctly size your parent UIImageView. 
- * First frame of animation will be passed in frame.
- * Also, animationSize property will be set before this block invokation.
+* This block will be called when we are ready to show first frame of animation.
+* You can use it to correctly size your parent UIImageView.
+* First frame of animation will be passed in frame.
+* Also, animationSize property will be set before this block invocation.
 */
-@property (nonatomic, copy) void(^willShowFrameBlock)(AnimatedGif *object, UIImage * frame);
+@property (nonatomic, copy) void(^willShowFrameBlock)(AnimatedGif *object, UIImage *frame);
 /// URL of current animation gif if it was passed
 @property (nonatomic, readonly) NSURL *url;
 /// Size of current animation GIF. Will be set only after loading and first frame processed
-@property (nonatomic, assign)   CGSize animationSize;
+@property (nonatomic, assign) CGSize animationSize;
 /// Image view where animation will be shown
-@property (nonatomic, weak)     UIImageView * parentView;
+@property (nonatomic, weak) UIImageView *parentView;
 
 /// Creates new animation from URL. It may be local file URL, or web URL
-+ (AnimatedGif*) getAnimationForGifAtUrl: (NSURL *) animationUrl;
++ (AnimatedGif *)getAnimationForGifAtUrl:(NSURL *)animationUrl;
 /// Creates new animation with GIF data
-+ (AnimatedGif*) getAnimationForGifWithData:(NSData*) data;
++ (AnimatedGif *)getAnimationForGifWithData:(NSData *)data;
 /// Starts animation process (loading -> preparing -> display)
-- (void) start;
+- (void)start;
 /// Stops current animation
-- (void) stop;
+- (void)stop;
 
 @end

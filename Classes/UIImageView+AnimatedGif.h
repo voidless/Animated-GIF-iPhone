@@ -23,11 +23,12 @@
 
 #import <UIKit/UIKit.h>
 #import "AnimatedGif.h"
+
 @interface UIImageView (AnimatedGif)
 @property (nonatomic, strong) AnimatedGif *animatedGif;
--(void) setAnimatedGif:(AnimatedGif *)animatedGif startImmediately:(BOOL)start;
--(instancetype) initWithAnimationAtURL:(NSURL*) animationUrl startImmediately:(BOOL)start;
--(instancetype) initWithAnimationData:(NSData*) animationData startImmediately:(BOOL)start;
--(void) startGifAnimation;
--(void) stopGifAnimation;
+- (void)setAnimatedGif:(AnimatedGif *)animatedGif startImmediately:(BOOL)start;
+- (instancetype)initWithAnimationAtURL:(NSURL *)animationUrl startImmediately:(BOOL)start;
+- (instancetype)initWithAnimationData:(NSData *)animationData startImmediately:(BOOL)start;
+- (void)startGifAnimation;
+- (void)stopGifAnimation;
 @end

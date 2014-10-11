@@ -24,60 +24,57 @@
 #import "AnimatedGif.h"
 
 /**
- * Creates new context for frames drawing.
- */
-static CGContextRef CreateARGBBitmapContext(CGSize size)
-{
-    CGContextRef    context = NULL;
+* Creates new context for frames drawing.
+*/
+static CGContextRef CreateARGBBitmapContext(CGSize size) {
+    CGContextRef context = NULL;
     CGColorSpaceRef colorSpace;
-    int             bitmapByteCount;
-    int             bitmapBytesPerRow;
-    
+    int bitmapByteCount;
+    int bitmapBytesPerRow;
+
     // Get image width, height. We'll use the entire image.
     size_t pixelsWide = size.width;
     size_t pixelsHigh = size.height;
-    
+
     // Declare the number of bytes per row. Each pixel in the bitmap in this
     // example is represented by 4 bytes; 8 bits each of red, green, blue, and
     // alpha.
-    bitmapBytesPerRow   = (int)(pixelsWide * 4);
-    bitmapByteCount     = (int)(bitmapBytesPerRow * pixelsHigh);
-    
+    bitmapBytesPerRow = (int) (pixelsWide * 4);
+    bitmapByteCount = (int) (bitmapBytesPerRow * pixelsHigh);
+
     // Use the generic RGB color space.
     colorSpace = CGColorSpaceCreateDeviceRGB();
-    
-    if (colorSpace == NULL)
-    {
+
+    if (colorSpace == NULL) {
         fprintf(stderr, "Error allocating color space\n");
         return NULL;
     }
-    
+
     // Create the bitmap context. We want pre-multiplied ARGB, 8-bits
     // per component. Regardless of what the source image format is
     // (CMYK, Grayscale, and so on) it will be converted over to the format
     // specified here by CGBitmapContextCreate.
-    context = CGBitmapContextCreate (NULL,
-                                     pixelsWide,
-                                     pixelsHigh,
-                                     8,      // bits per component
-                                     bitmapBytesPerRow,
-                                     colorSpace,
-                                     (CGBitmapInfo) kCGImageAlphaPremultipliedFirst);
-    if (context == NULL)
-    {
-        fprintf (stderr, "Context not created!");
+    context = CGBitmapContextCreate(NULL,
+        pixelsWide,
+        pixelsHigh,
+        8,      // bits per component
+        bitmapBytesPerRow,
+        colorSpace,
+        (CGBitmapInfo) kCGImageAlphaPremultipliedFirst);
+    if (context == NULL) {
+        fprintf(stderr, "Context not created!");
     }
-    
+
     // Make sure and release colorspace before returning
-    CGColorSpaceRelease( colorSpace );
-    
+    CGColorSpaceRelease(colorSpace);
+
     return context;
-    
+
 }
 
 /**
- * Describes GIF animation frame
- */
+* Describes GIF animation frame
+*/
 @interface AnimatedGifFrame : NSObject
 
 @property (nonatomic, copy) NSData *header;
@@ -89,30 +86,32 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
 
 @implementation AnimatedGifFrame
 
-- (void) dealloc
+- (void)dealloc
 {
     _data = nil;
     _header = nil;
 }
 @end
 
-@interface AnimatedGifQueueObject ()
-{
-    NSURLResponse * _urlResponse;
+@interface AnimatedGifQueueObject () {
+    NSURLResponse *_urlResponse;
 }
 @property (nonatomic, copy) void(^loadingProgressChangedBlock)(AnimatedGifQueueObject *object);
 @property (nonatomic, copy) void(^didLoadBlock)(AnimatedGifQueueObject *object);
 @end
 
 @implementation AnimatedGifQueueObject
-- (id)init {
+- (id)init
+{
     self = [super init];
     return self;
 }
+
 /**
- * Downloads GIF from network, and caches it, if possible. NSURLCache may be removed
- */
-- (void) downloadGif {
+* Downloads GIF from network, and caches it, if possible. NSURLCache may be removed
+*/
+- (void)downloadGif
+{
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         NSURLCache *URLCache = [[NSURLCache alloc] initWithMemoryCapacity:5 * 1024 * 1024
@@ -120,11 +119,11 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
                                                                  diskPath:nil];
         [NSURLCache setSharedURLCache:URLCache];
     });
-    
-    NSMutableURLRequest * request = [[NSMutableURLRequest alloc] initWithURL:self.url];
-    NSCachedURLResponse * response = [[NSURLCache sharedURLCache] cachedResponseForRequest:request];
+
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:self.url];
+    NSCachedURLResponse *response = [[NSURLCache sharedURLCache] cachedResponseForRequest:request];
     if (!response) {
-        NSURLConnection * connection = [[NSURLConnection alloc] initWithRequest:request delegate:self startImmediately:NO];
+        NSURLConnection *connection = [[NSURLConnection alloc] initWithRequest:request delegate:self startImmediately:NO];
         [connection scheduleInRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
         [connection start];
         return;
@@ -136,23 +135,28 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
         }
     });
 }
+
 #pragma mark - NSURLConnectionDataDelegate methods
-- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response {
+
+- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response
+{
     if (!_data) {
         expectedGifSize = response.expectedContentLength;
         if (expectedGifSize > 0) {
-            _data = [NSMutableData dataWithCapacity:((NSUInteger)expectedGifSize)];
+            _data = [NSMutableData dataWithCapacity:((NSUInteger) expectedGifSize)];
         } else {
             _data = [NSMutableData new];
         }
     }
     _urlResponse = response;
 }
-- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
+
+- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data
+{
     if (!_data)
         _data = [NSMutableData data];
-    [(NSMutableData*)_data appendData:data];
-    
+    [(NSMutableData *) _data appendData:data];
+
     self.loadingProgress = _data.length * 1.0f / expectedGifSize;
     if (expectedGifSize < 0) {
         self.loadingProgress = 0;
@@ -162,76 +166,82 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
     }
     [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifLoadingProgressEvent object:self];
 }
--(void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error {
+
+- (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error
+{
     [self downloadGif];
 }
 
--(void)connectionDidFinishLoading:(NSURLConnection *)connection {
+- (void)connectionDidFinishLoading:(NSURLConnection *)connection
+{
     if (expectedGifSize > 0 && _data.length != expectedGifSize) {
         [self downloadGif];
         return;
     }
-    NSCachedURLResponse * response = [[NSCachedURLResponse alloc] initWithResponse:_urlResponse data:_data userInfo:nil storagePolicy:NSURLCacheStorageAllowed];
+    NSCachedURLResponse *response = [[NSCachedURLResponse alloc] initWithResponse:_urlResponse data:_data userInfo:nil storagePolicy:NSURLCacheStorageAllowed];
     [[NSURLCache sharedURLCache] storeCachedResponse:response forRequest:connection.originalRequest];
     if (_didLoadBlock) {
         _didLoadBlock(self);
     }
-    
+
 }
 
--(void)dealloc {
-    _didLoadBlock                = nil;
+- (void)dealloc
+{
+    _didLoadBlock = nil;
     _loadingProgressChangedBlock = nil;
 }
 @end
 
 
-@interface AnimatedGif ()
-{
+@interface AnimatedGif () {
     NSData *GIF_pointer;
-	NSMutableData *GIF_buffer;
-	NSMutableData *GIF_screen;
-	NSMutableData *GIF_global;
-    NSDate * frameTime;
+    NSMutableData *GIF_buffer;
+    NSMutableData *GIF_screen;
+    NSMutableData *GIF_global;
+    NSDate *frameTime;
     CGContextRef imageContext;
-	
-	int GIF_sorted;
-	int GIF_colorS;
-	int GIF_colorC;
-	int GIF_colorF;
-	int dataPointer;
+
+    int GIF_sorted;
+    int GIF_colorS;
+    int GIF_colorC;
+    int GIF_colorF;
+    int dataPointer;
     int totalFrames;
-    
+
     BOOL didShowFrame, didCountAllFrames;
-    
+
     AnimatedGifFrame *thisFrame, *lastFrame;
-    UIImage * overlayImage;
+    UIImage *overlayImage;
     NSOperationQueue *opQueue;
-    
+
 }
-@property (nonatomic, strong) AnimatedGifQueueObject * queueObject;
+@property (nonatomic, strong) AnimatedGifQueueObject *queueObject;
 @end
 
 @implementation AnimatedGif
-+(AnimatedGif *)getAnimationForGifAtUrl:(NSURL *)animationUrl {
-    AnimatedGifQueueObject * object = [AnimatedGifQueueObject new];
++ (AnimatedGif *)getAnimationForGifAtUrl:(NSURL *)animationUrl
+{
+    AnimatedGifQueueObject *object = [AnimatedGifQueueObject new];
     object.url = animationUrl;
-    
-    AnimatedGif * animation = [AnimatedGif new];
+
+    AnimatedGif *animation = [AnimatedGif new];
     animation.queueObject = object;
     return animation;
 }
 
-+(AnimatedGif *)getAnimationForGifWithData:(NSData *)data {
-    AnimatedGifQueueObject * object = [AnimatedGifQueueObject new];
++ (AnimatedGif *)getAnimationForGifWithData:(NSData *)data
+{
+    AnimatedGifQueueObject *object = [AnimatedGifQueueObject new];
     object.data = data;
-    
-    AnimatedGif * animation = [AnimatedGif new];
+
+    AnimatedGif *animation = [AnimatedGif new];
     animation.queueObject = object;
     return animation;
 }
 
--(void)dealloc {
+- (void)dealloc
+{
     [opQueue waitUntilAllOperationsAreFinished];
     opQueue = nil;
     if (imageContext)
@@ -239,18 +249,21 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
     overlayImage = nil;
 }
 
--(NSURL *)url {
+- (NSURL *)url
+{
     return self.queueObject.url;
 }
 
-- (void) stop {
+- (void)stop
+{
     [opQueue cancelAllOperations];
     [opQueue setSuspended:YES];
-    
+
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
-- (void) start {
+- (void)start
+{
     didShowFrame = NO;
     [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidStartLoadingingEvent object:self userInfo:nil];
     if (self.queueObject.data) {
@@ -258,7 +271,7 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
     } else if ([self.queueObject.url isFileURL]) {
         [self startThreadWithData:[NSData dataWithContentsOfURL:self.queueObject.url]];
     } else if (self.queueObject.url) {
-        __weak AnimatedGif * wself = self;
+        __weak AnimatedGif *wself = self;
         [self.queueObject setLoadingProgressChangedBlock:^(AnimatedGifQueueObject *obj) {
             if (wself.loadingProgressBlock) {
                 wself.loadingProgressBlock(wself, obj.loadingProgress);
@@ -271,79 +284,76 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
     }
 }
 
-- (void) startThreadWithData:(NSData*) gifData {
+- (void)startThreadWithData:(NSData *)gifData
+{
     [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidFinishLoadingingEvent object:self userInfo:nil];
     if (!opQueue) {
         opQueue = [[NSOperationQueue alloc] init];
         opQueue.maxConcurrentOperationCount = 1;
     }
     [opQueue addOperation:[[NSInvocationOperation alloc] initWithTarget:self selector:@selector(decodeGIF:) object:gifData]];
-    
+
 }
 
 /**
- * Main GIF loop. Decodes gif data and draws it on parent view.
- */
+* Main GIF loop. Decodes gif data and draws it on parent view.
+*/
 - (void)decodeGIF:(NSData *)GIFData
 {
     opQueue.name = @"Gif queue";
-    
+
     while (!opQueue.isSuspended) {
         @autoreleasepool {
             GIF_pointer = GIFData;
             GIF_buffer = nil;
             GIF_global = nil;
             GIF_screen = nil;
-            
+
             GIF_buffer = [[NSMutableData alloc] init];
             GIF_global = [[NSMutableData alloc] init];
             GIF_screen = [[NSMutableData alloc] init];
-            
+
             thisFrame = lastFrame = nil;
-            
+
             // Reset file counters to 0
             dataPointer = 0;
-            
-            [self GIFSkipBytes: 6]; // GIF89a, throw away
-            [self GIFGetBytes: 7]; // Logical Screen Descriptor
-            
+
+            [self GIFSkipBytes:6]; // GIF89a, throw away
+            [self GIFGetBytes:7]; // Logical Screen Descriptor
+
             // Deep copy
-            [GIF_screen setData: GIF_buffer];
-            
+            [GIF_screen setData:GIF_buffer];
+
             // Copy the read bytes into a local buffer on the stack
             // For easy byte access in the following lines.
             NSInteger length = [GIF_buffer length];
             unsigned char aBuffer[length];
             [GIF_buffer getBytes:aBuffer length:length];
-            
+
             if (aBuffer[4] & 0x80) GIF_colorF = 1; else GIF_colorF = 0;
             if (aBuffer[4] & 0x08) GIF_sorted = 1; else GIF_sorted = 0;
             GIF_colorC = (aBuffer[4] & 0x07);
             GIF_colorS = 2 << GIF_colorC;
-            
-            if (GIF_colorF == 1)
-            {
-                [self GIFGetBytes: (3 * GIF_colorS)];
-                
+
+            if (GIF_colorF == 1) {
+                [self GIFGetBytes:(3 * GIF_colorS)];
+
                 // Deep copy
                 [GIF_global setData:GIF_buffer];
             }
-            
+
             unsigned char bBuffer[1];
-            
-            
-            while ([self GIFGetBytes:1] && !opQueue.isSuspended)
-            {
+
+
+            while ([self GIFGetBytes:1] && !opQueue.isSuspended) {
                 @autoreleasepool {
                     [GIF_buffer getBytes:bBuffer length:1];
-                    
-                    if (bBuffer[0] == 0x3B)
-                    { // This is the end
+
+                    if (bBuffer[0] == 0x3B) { // This is the end
                         break;
                     }
-                    
-                    switch (bBuffer[0])
-                    {
+
+                    switch (bBuffer[0]) {
                         case 0x21:
                             // Graphic Control Extension (#n of n)
                             [self GIFReadExtensions];
@@ -355,15 +365,15 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
                             break;
                     }
                 }
-                
+
                 if ([self endOfGifReached:1]) {
                     if ([self.delegate respondsToSelector:@selector(animationWillRepeat:)]) {
                         [self.delegate performSelector:@selector(animationWillRepeat:) withObject:self];
                     }
                 }
-                
+
             }
-            
+
             didCountAllFrames = YES;
             if (totalFrames <= 1) {
                 [self stop];
@@ -374,43 +384,42 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
             GIF_global = nil;
         }
     }
-    
+
 }
 
 /**
- * This method draws next GIF frame on the canvas of imageContext, according disposal method.
- * After frame image is ready, it passes it to main thread and sets to parent image view.
- */
-- (void) drawNextFrame:(AnimatedGifFrame*) frame
+* This method draws next GIF frame on the canvas of imageContext, according disposal method.
+* After frame image is ready, it passes it to main thread and sets to parent image view.
+*/
+- (void)drawNextFrame:(AnimatedGifFrame *)frame
 {
     @autoreleasepool {
-        UIImage * image = [UIImage imageWithData:frame.data];
-        
+        UIImage *image = [UIImage imageWithData:frame.data];
+
         if (!image) return;
-        
+
         CGSize size = image.size;
         CGRect rect = CGRectZero;
         rect.size = size;
         self.animationSize = size;
-        
+
         // Create new bitmap context if need
         if (!imageContext) {
             imageContext = CreateARGBBitmapContext(size);
         }
-        
+
         // Initialize Flag
         UIImage *previousCanvas = nil;
-        
+
         // Save Context
         CGContextSaveGState(imageContext);
         CGContextScaleCTM(imageContext, 1.0, -1.0);
         CGContextTranslateCTM(imageContext, 0.0, -size.height);
         // Check if lastFrame exists
         CGRect clipRect;
-        
+
         // Disposal Method (Operations before draw frame)
-        switch (frame.disposalMethod)
-        {
+        switch (frame.disposalMethod) {
             case 1: // Do not dispose (draw over context)
                 // Create Rect (y inverted) to clipping
                 clipRect = CGRectMake(frame.area.origin.x, size.height - frame.area.size.height - frame.area.origin.y, frame.area.size.width, frame.area.size.height);
@@ -430,28 +439,28 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
                     previousCanvas = [UIImage imageWithCGImage:img scale:1.0f orientation:UIImageOrientationDownMirrored];
                     CGImageRelease(img);
                 }
-                
+
                 // Create Rect (y inverted) to clipping
                 clipRect = CGRectMake(frame.area.origin.x, size.height - frame.area.size.height - frame.area.origin.y, frame.area.size.width, frame.area.size.height);
                 // Clip Context
                 CGContextClipToRect(imageContext, clipRect);
                 break;
         }
-        
+
         // Draw Actual Frame
         CGContextDrawImage(imageContext, rect, image.CGImage);
         // Restore State
         CGContextRestoreGState(imageContext);
-		
-		if (!didCountAllFrames) {
-			totalFrames++;
-		}
-		
-		static CGFloat minimalFrameRate = 5;
-		if (frame.delay < minimalFrameRate) {
-			frame.delay = minimalFrameRate;
-		}
-        
+
+        if (!didCountAllFrames) {
+            totalFrames++;
+        }
+
+        static CGFloat minimalFrameRate = 5;
+        if (frame.delay < minimalFrameRate) {
+            frame.delay = minimalFrameRate;
+        }
+
         // Add Image created.
         @autoreleasepool {
             CGImageRef img = CGBitmapContextCreateImage(imageContext);
@@ -463,10 +472,9 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
         }
         // Set Last Frame
         lastFrame = frame;
-        
-        // Disposal Method (Operations afte draw frame)
-        switch (frame.disposalMethod)
-        {
+
+        // Disposal Method (Operations after draw frame)
+        switch (frame.disposalMethod) {
             case 2: // Restore to background color the zone of the actual frame
                 // Save Context
                 CGContextSaveGState(imageContext);
@@ -487,234 +495,219 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
                 break;
         }
         previousCanvas = nil;
-        NSDate * now = [NSDate new];
+        NSDate *now = [NSDate new];
         CGFloat frameDelay = frame.delay / 100, processTime = [now timeIntervalSinceDate:frameTime];
         CGFloat threadDelay = frameDelay - processTime;
         frameTime = now;
         if (threadDelay < 0) threadDelay = 0;
-        
+
         if (!opQueue.isSuspended) {
             dispatch_sync(dispatch_get_main_queue(), ^{
                 if (!didShowFrame && _willShowFrameBlock) {
                     _willShowFrameBlock(self, overlayImage);
                     //Useless now
                     _willShowFrameBlock = nil;
-                     didShowFrame = YES;
+                    didShowFrame = YES;
                 }
                 self.parentView.image = overlayImage;
             });
         }
-        
+
         [NSThread sleepForTimeInterval:threadDelay];
     }
-    
+
 }
 
 
 - (void)GIFReadExtensions
 {
-	// 21! But we still could have an Application Extension,
-	// so we want to check for the full signature.
-	unsigned char cur[1], prev[1];
+    // 21! But we still could have an Application Extension,
+    // so we want to check for the full signature.
+    unsigned char cur[1], prev[1];
     [self GIFGetBytes:1];
     [GIF_buffer getBytes:cur length:1];
-    
-	while (cur[0] != 0x00)
-    {
-		
-		// TODO: Known bug, the sequence F9 04 could occur in the Application Extension, we
-		//       should check whether this combo follows directly after the 21.
-		if (cur[0] == 0x04 && prev[0] == 0xF9)
-		{
-			[self GIFGetBytes:5];
-            
-			AnimatedGifFrame *frame = [[AnimatedGifFrame alloc] init];
-			
-			unsigned char buffer[5];
-			[GIF_buffer getBytes:buffer length:5];
-			frame.disposalMethod = (buffer[0] & 0x1c) >> 2;
-			// We save the delays for easy access.
-			frame.delay = (buffer[1] | buffer[2] << 8);
-			
-			unsigned char board[8];
-			board[0] = 0x21;
-			board[1] = 0xF9;
-			board[2] = 0x04;
-			
-			for(int i = 3, a = 0; a < 5; i++, a++)
-			{
-				board[i] = buffer[a];
-			}
-			
-			frame.header = [NSData dataWithBytes:board length:8];
-            
-			thisFrame = frame;
-			break;
-		}
-		
-		prev[0] = cur[0];
-        [self GIFGetBytes:1];
-		[GIF_buffer getBytes:cur length:1];
-	}
-}
 
-- (void) GIFReadDescriptor
-{
-	[self GIFGetBytes:9];
-    
-    // Deep copy
-	NSMutableData *GIF_screenTmp = [NSMutableData dataWithData:GIF_buffer];
-	
-	unsigned char aBuffer[9];
-	[GIF_buffer getBytes:aBuffer length:9];
-	
-	CGRect rect;
-	rect.origin.x = ((int)aBuffer[1] << 8) | aBuffer[0];
-	rect.origin.y = ((int)aBuffer[3] << 8) | aBuffer[2];
-	rect.size.width = ((int)aBuffer[5] << 8) | aBuffer[4];
-	rect.size.height = ((int)aBuffer[7] << 8) | aBuffer[6];
-    
-	AnimatedGifFrame *frame = thisFrame;
-	frame.area = rect;
-	
-	if (aBuffer[8] & 0x80) GIF_colorF = 1; else GIF_colorF = 0;
-	
-	unsigned char GIF_code = GIF_colorC, GIF_sort = GIF_sorted;
-	
-	if (GIF_colorF == 1)
-    {
-		GIF_code = (aBuffer[8] & 0x07);
-        
-		if (aBuffer[8] & 0x20)
-        {
-            GIF_sort = 1;
-        }
-        else
-        {
-        	GIF_sort = 0;
-        }
-	}
-	
-	int GIF_size = (2 << GIF_code);
-	
-	size_t blength = [GIF_screen length];
-	unsigned char bBuffer[blength];
-	[GIF_screen getBytes:bBuffer length:blength];
-	
-	bBuffer[4] = (bBuffer[4] & 0x70);
-	bBuffer[4] = (bBuffer[4] | 0x80);
-	bBuffer[4] = (bBuffer[4] | GIF_code);
-	
-	if (GIF_sort)
-    {
-		bBuffer[4] |= 0x08;
-	}
-	
-    NSMutableData *GIF_string = [NSMutableData dataWithData:[@"GIF89a" dataUsingEncoding: NSUTF8StringEncoding]];
-	[GIF_screen setData:[NSData dataWithBytes:bBuffer length:blength]];
-    [GIF_string appendData: GIF_screen];
-    
-	if (GIF_colorF == 1)
-    {
-		[self GIFGetBytes:(3 * GIF_size)];
-		[GIF_string appendData:GIF_buffer];
-	}
-    else
-    {
-		[GIF_string appendData:GIF_global];
-	}
-	
-	// Add Graphic Control Extension Frame (for transparancy)
-	[GIF_string appendData:frame.header];
-	
-	char endC = 0x2c;
-	[GIF_string appendBytes:&endC length:sizeof(endC)];
-	
-	size_t clength = [GIF_screenTmp length];
-	unsigned char cBuffer[clength];
-	[GIF_screenTmp getBytes:cBuffer length:clength];
-	
-	cBuffer[8] &= 0x40;
-	
-	[GIF_screenTmp setData:[NSData dataWithBytes:cBuffer length:clength]];
-	
-	[GIF_string appendData: GIF_screenTmp];
-	[self GIFGetBytes:1];
-	[GIF_string appendData: GIF_buffer];
-	
-	while (true && !opQueue.isSuspended)
-    {
-		[self GIFGetBytes:1];
-		[GIF_string appendData: GIF_buffer];
-		
-		unsigned char dBuffer[1];
-		[GIF_buffer getBytes:dBuffer length:1];
-		
-		long u = (long) dBuffer[0];
-        
-		if (u != 0x00)
-        {
-			[self GIFGetBytes:u];
-			[GIF_string appendData: GIF_buffer];
-        }
-        else
-        {
+    while (cur[0] != 0x00) {
+
+        // TODO: Known bug, the sequence F9 04 could occur in the Application Extension, we
+        //       should check whether this combo follows directly after the 21.
+        if (cur[0] == 0x04 && prev[0] == 0xF9) {
+            [self GIFGetBytes:5];
+
+            AnimatedGifFrame *frame = [[AnimatedGifFrame alloc] init];
+
+            unsigned char buffer[5];
+            [GIF_buffer getBytes:buffer length:5];
+            frame.disposalMethod = (buffer[0] & 0x1c) >> 2;
+            // We save the delays for easy access.
+            frame.delay = (buffer[1] | buffer[2] << 8);
+
+            unsigned char board[8];
+            board[0] = 0x21;
+            board[1] = 0xF9;
+            board[2] = 0x04;
+
+            for (int i = 3, a = 0; a < 5; i++, a++) {
+                board[i] = buffer[a];
+            }
+
+            frame.header = [NSData dataWithBytes:board length:8];
+
+            thisFrame = frame;
             break;
         }
-        
-	}
-	
-	endC = 0x3b;
-	[GIF_string appendBytes:&endC length:sizeof(endC)];
-	
-	// save the frame into the array of frames
-	frame.data = GIF_string;
+
+        prev[0] = cur[0];
+        [self GIFGetBytes:1];
+        [GIF_buffer getBytes:cur length:1];
+    }
+}
+
+- (void)GIFReadDescriptor
+{
+    [self GIFGetBytes:9];
+
+    // Deep copy
+    NSMutableData *GIF_screenTmp = [NSMutableData dataWithData:GIF_buffer];
+
+    unsigned char aBuffer[9];
+    [GIF_buffer getBytes:aBuffer length:9];
+
+    CGRect rect;
+    rect.origin.x = ((int) aBuffer[1] << 8) | aBuffer[0];
+    rect.origin.y = ((int) aBuffer[3] << 8) | aBuffer[2];
+    rect.size.width = ((int) aBuffer[5] << 8) | aBuffer[4];
+    rect.size.height = ((int) aBuffer[7] << 8) | aBuffer[6];
+
+    AnimatedGifFrame *frame = thisFrame;
+    frame.area = rect;
+
+    if (aBuffer[8] & 0x80) GIF_colorF = 1; else GIF_colorF = 0;
+
+    unsigned char GIF_code = GIF_colorC, GIF_sort = GIF_sorted;
+
+    if (GIF_colorF == 1) {
+        GIF_code = (aBuffer[8] & 0x07);
+
+        if (aBuffer[8] & 0x20) {
+            GIF_sort = 1;
+        }
+        else {
+            GIF_sort = 0;
+        }
+    }
+
+    int GIF_size = (2 << GIF_code);
+
+    size_t blength = [GIF_screen length];
+    unsigned char bBuffer[blength];
+    [GIF_screen getBytes:bBuffer length:blength];
+
+    bBuffer[4] = (bBuffer[4] & 0x70);
+    bBuffer[4] = (bBuffer[4] | 0x80);
+    bBuffer[4] = (bBuffer[4] | GIF_code);
+
+    if (GIF_sort) {
+        bBuffer[4] |= 0x08;
+    }
+
+    NSMutableData *GIF_string = [NSMutableData dataWithData:[@"GIF89a" dataUsingEncoding:NSUTF8StringEncoding]];
+    [GIF_screen setData:[NSData dataWithBytes:bBuffer length:blength]];
+    [GIF_string appendData:GIF_screen];
+
+    if (GIF_colorF == 1) {
+        [self GIFGetBytes:(3 * GIF_size)];
+        [GIF_string appendData:GIF_buffer];
+    }
+    else {
+        [GIF_string appendData:GIF_global];
+    }
+
+    // Add Graphic Control Extension Frame (for transparancy)
+    [GIF_string appendData:frame.header];
+
+    char endC = 0x2c;
+    [GIF_string appendBytes:&endC length:sizeof(endC)];
+
+    size_t clength = [GIF_screenTmp length];
+    unsigned char cBuffer[clength];
+    [GIF_screenTmp getBytes:cBuffer length:clength];
+
+    cBuffer[8] &= 0x40;
+
+    [GIF_screenTmp setData:[NSData dataWithBytes:cBuffer length:clength]];
+
+    [GIF_string appendData:GIF_screenTmp];
+    [self GIFGetBytes:1];
+    [GIF_string appendData:GIF_buffer];
+
+    // TODO: wtf?
+    while (true && !opQueue.isSuspended) {
+        [self GIFGetBytes:1];
+        [GIF_string appendData:GIF_buffer];
+
+        unsigned char dBuffer[1];
+        [GIF_buffer getBytes:dBuffer length:1];
+
+        long u = (long) dBuffer[0];
+
+        if (u != 0x00) {
+            [self GIFGetBytes:u];
+            [GIF_string appendData:GIF_buffer];
+        }
+        else {
+            break;
+        }
+
+    }
+
+    endC = 0x3b;
+    [GIF_string appendBytes:&endC length:sizeof(endC)];
+
+    // save the frame into the array of frames
+    frame.data = GIF_string;
     [self drawNextFrame:frame];
 }
 
-/* Puts (int) length into the GIF_buffer from file, returns whether read was succesfull */
-- (bool) GIFGetBytes: (NSInteger) length
+/* Puts (int) length into the GIF_buffer from file, returns whether read was successful */
+- (bool)GIFGetBytes:(NSInteger)length
 {
-    if (GIF_buffer != nil)
-    {
+    if (GIF_buffer != nil) {
         GIF_buffer = nil;
     }
-    
-	if ([GIF_pointer length] >= dataPointer + length) // Don't read across the edge of the file..
+
+    if ([GIF_pointer length] >= dataPointer + length) // Don't read across the edge of the file..
     {
-		GIF_buffer = [[GIF_pointer subdataWithRange:NSMakeRange(dataPointer, length)] mutableCopy];
+        GIF_buffer = [[GIF_pointer subdataWithRange:NSMakeRange(dataPointer, length)] mutableCopy];
         dataPointer += length;
-		return YES;
-	}
-    else
-    {
+        return YES;
+    }
+    else {
         return NO;
-	}
+    }
 }
 
-- (BOOL) endOfGifReached:(NSInteger) length
+- (BOOL)endOfGifReached:(NSInteger)length
 {
-	if ([GIF_pointer length] > dataPointer + length) // Don't read across the edge of the file..
+    if ([GIF_pointer length] > dataPointer + length) // Don't read across the edge of the file..
     {
-		return NO;
-	}
+        return NO;
+    }
 
     return YES;
 }
 
 /* Skips (int) length bytes in the GIF, faster than reading them and throwing them away.. */
-- (bool) GIFSkipBytes: (NSInteger) length
+- (bool)GIFSkipBytes:(NSInteger)length
 {
-    if ([GIF_pointer length] >= dataPointer + length)
-    {
+    if ([GIF_pointer length] >= dataPointer + length) {
         dataPointer += length;
         return YES;
     }
-    else
-    {
-    	return NO;
+    else {
+        return NO;
     }
-    
+
 }
 
 
