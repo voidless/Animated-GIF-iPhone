@@ -365,6 +365,9 @@ static CGContextRef CreateARGBBitmapContext(CGSize size)
             }
             
             didCountAllFrames = YES;
+            if (totalFrames <= 1) {
+                [self stop];
+            }
             // clean up stuff
             GIF_buffer = nil;
             GIF_screen = nil;
