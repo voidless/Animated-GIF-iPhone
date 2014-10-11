@@ -29,18 +29,16 @@
 static CGContextRef CreateARGBBitmapContext(CGSize size) {
     CGContextRef context = NULL;
     CGColorSpaceRef colorSpace;
-    int bitmapByteCount;
-    int bitmapBytesPerRow;
+    size_t bitmapBytesPerRow;
 
     // Get image width, height. We'll use the entire image.
-    size_t pixelsWide = size.width;
-    size_t pixelsHigh = size.height;
+    size_t pixelsWide = (size_t) size.width;
+    size_t pixelsHigh = (size_t) size.height;
 
     // Declare the number of bytes per row. Each pixel in the bitmap in this
     // example is represented by 4 bytes; 8 bits each of red, green, blue, and
     // alpha.
-    bitmapBytesPerRow = (int) (pixelsWide * 4);
-    bitmapByteCount = (int) (bitmapBytesPerRow * pixelsHigh);
+    bitmapBytesPerRow = pixelsWide * 4;
 
     // Use the generic RGB color space.
     colorSpace = CGColorSpaceCreateDeviceRGB();
@@ -265,7 +263,7 @@ static CGContextRef CreateARGBBitmapContext(CGSize size) {
 - (void)start
 {
     didShowFrame = NO;
-    [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidStartLoadingingEvent object:self userInfo:nil];
+    [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidStartLoadingEvent object:self userInfo:nil];
     if (self.queueObject.data) {
         [self startThreadWithData:self.queueObject.data];
     } else if ([self.queueObject.url isFileURL]) {
@@ -286,7 +284,7 @@ static CGContextRef CreateARGBBitmapContext(CGSize size) {
 
 - (void)startThreadWithData:(NSData *)gifData
 {
-    [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidFinishLoadingingEvent object:self userInfo:nil];
+    [[NSNotificationCenter defaultCenter] postNotificationName:AnimatedGifDidFinishLoadingEvent object:self userInfo:nil];
     if (!opQueue) {
         opQueue = [[NSOperationQueue alloc] init];
         opQueue.maxConcurrentOperationCount = 1;
@@ -326,7 +324,7 @@ static CGContextRef CreateARGBBitmapContext(CGSize size) {
 
             // Copy the read bytes into a local buffer on the stack
             // For easy byte access in the following lines.
-            NSInteger length = [GIF_buffer length];
+            NSUInteger length = [GIF_buffer length];
             unsigned char aBuffer[length];
             [GIF_buffer getBytes:aBuffer length:length];
 
@@ -413,10 +411,10 @@ static CGContextRef CreateARGBBitmapContext(CGSize size) {
 
         // Save Context
         CGContextSaveGState(imageContext);
-        CGContextScaleCTM(imageContext, 1.0, -1.0);
+        CGContextScaleCTM(imageContext, 1.0, -1.0f);
         CGContextTranslateCTM(imageContext, 0.0, -size.height);
         // Check if lastFrame exists
-        CGRect clipRect;
+        CGRect clipRect = CGRectZero;
 
         // Disposal Method (Operations before draw frame)
         switch (frame.disposalMethod) {
@@ -496,8 +494,8 @@ static CGContextRef CreateARGBBitmapContext(CGSize size) {
         }
         previousCanvas = nil;
         NSDate *now = [NSDate new];
-        CGFloat frameDelay = frame.delay / 100, processTime = [now timeIntervalSinceDate:frameTime];
-        CGFloat threadDelay = frameDelay - processTime;
+        NSTimeInterval frameDelay = frame.delay / 100, processTime = [now timeIntervalSinceDate:frameTime];
+        NSTimeInterval threadDelay = frameDelay - processTime;
         frameTime = now;
         if (threadDelay < 0) threadDelay = 0;
 
@@ -689,12 +687,8 @@ static CGContextRef CreateARGBBitmapContext(CGSize size) {
 
 - (BOOL)endOfGifReached:(NSInteger)length
 {
-    if ([GIF_pointer length] > dataPointer + length) // Don't read across the edge of the file..
-    {
-        return NO;
-    }
-
-    return YES;
+    // Don't read across the edge of the file..
+    return [GIF_pointer length] <= (dataPointer + length);
 }
 
 /* Skips (int) length bytes in the GIF, faster than reading them and throwing them away.. */
@@ -709,6 +703,5 @@ static CGContextRef CreateARGBBitmapContext(CGSize size) {
     }
 
 }
-
 
 @end

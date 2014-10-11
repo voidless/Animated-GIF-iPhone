@@ -24,9 +24,8 @@
 #import <Foundation/Foundation.h>
 
 static NSString *const AnimatedGifLoadingProgressEvent = @"AnimatedGifLoadingProgressEvent";
-static NSString *const AnimatedGifDidStartLoadingingEvent = @"AnimatedGifDidStartLoadingingEvent";
-static NSString *const AnimatedGifDidFinishLoadingingEvent = @"AnimatedGifDidFinishLoadingingEvent";
-static NSString *const AnimatedGifRemovedFromSuperview = @"AnimatedGifRemovedFromSuperview";
+static NSString *const AnimatedGifDidStartLoadingEvent = @"AnimatedGifDidStartLoadingEvent";
+static NSString *const AnimatedGifDidFinishLoadingEvent = @"AnimatedGifDidFinishLoadingEvent";
 
 @class AnimatedGif;
 
